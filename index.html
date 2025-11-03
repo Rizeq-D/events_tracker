@@ -124,7 +124,7 @@
     let editingIndex = null;
 
     // ---- Utilities ----
-    const € = n => (Number(n||0)).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+    const euro = (n) => (Number(n||0)).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
 
     function parseTimeToDate(dateStr, timeStr){
       const [h,m] = (timeStr||'0:0').split(':').map(Number);
@@ -200,8 +200,8 @@
         ['Canceled', totals.canceled],
         ['On hold', totals.hold],
         ['Free', totals.free],
-        ['Revenue €', '€ '+€(totals.revenue)],
-        ['Lost €', '€ '+€(totals.lost)],
+        ['Revenue €', '€ '+euro(totals.revenue)],
+        ['Lost €', '€ '+euro(totals.lost)],
         ['Guests Hosted', totals.guests]
       ];
       const grid = document.getElementById('kpiGrid');
@@ -230,10 +230,10 @@
           <td class="px-3 py-2">${e.room||''}</td>
           <td class="px-3 py-2">${e.status||''}</td>
           <td class="px-3 py-2 text-right">${e.guests||0}</td>
-          <td class="px-3 py-2 text-right">${e.rate? '€ '+€(e.rate): ''}</td>
-          <td class="px-3 py-2 text-right">${e.fee? '€ '+€(e.fee): ''}</td>
-          <td class="px-3 py-2 text-right">€ ${€(c.revenue)}</td>
-          <td class="px-3 py-2 text-right">€ ${€(c.lost)}</td>
+          <td class="px-3 py-2 text-right">${e.rate? '€ '+euro(e.rate): ''}</td>
+          <td class="px-3 py-2 text-right">${e.fee? '€ '+euro(e.fee): ''}</td>
+          <td class="px-3 py-2 text-right">€ ${euro(c.revenue)}</td>
+          <td class="px-3 py-2 text-right">€ ${euro(c.lost)}</td>
           <td class="px-3 py-2">${e.cancelReason||''}</td>
           <td class="px-3 py-2">${e.notes||''}</td>
           <td class="px-3 py-2 text-right">
@@ -263,7 +263,7 @@
       Object.entries(perRoom).forEach(([room, v]) => {
         const row = document.createElement('div');
         row.className = 'grid grid-cols-4 gap-2 text-sm py-1';
-        row.innerHTML = `<div class="font-medium">${room}</div><div>${v.events||0}</div><div>€ ${€(v.revenue)}</div><div>Lost € ${€(v.lost)} · Guests ${v.guests}</div>`;
+        row.innerHTML = `<div class="font-medium">${room}</div><div>${v.events||0}</div><div>€ ${euro(v.revenue)}</div><div>Lost € ${euro(v.lost)} · Guests ${v.guests}</div>`;
         pr.appendChild(row);
       });
       // per year
@@ -283,7 +283,7 @@
       Object.entries(perYear).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))).forEach(([year,v])=>{
         const row = document.createElement('div');
         row.className = 'grid grid-cols-6 gap-2 text-sm py-1';
-        row.innerHTML = `<div class="font-medium">${year}</div><div>${v.events}</div><div>Taken ${v.taken}</div><div>Cancelled ${v.canceled}</div><div>€ ${€(v.revenue)}</div><div>Lost € ${€(v.lost)}</div>`;
+        row.innerHTML = `<div class="font-medium">${year}</div><div>${v.events}</div><div>Taken ${v.taken}</div><div>Cancelled ${v.canceled}</div><div>€ ${euro(v.revenue)}</div><div>Lost € ${euro(v.lost)}</div>`;
         py.appendChild(row);
       });
     }
@@ -419,6 +419,3 @@
   </script>
 </body>
 </html>
-
-
-
