@@ -108,7 +108,7 @@
       <div class="flex justify-end gap-2 mt-6">
         <button type="button" id="deleteBtn" class="hidden px-3 py-2 rounded-xl bg-red-50 text-red-700">Delete</button>
         <button type="submit" class="px-3 py-2 rounded-xl bg-slate-900 text-white">Save</button>
-        <button type="button" class="px-3 py-2 rounded-xl bg-slate-200" value="cancel" onclick="document.getElementById('eventModal').close()">Cancel</button>
+        <button type="button" class="px-3 py-2 rounded-xl bg-slate-200" value="cancel" onclick="closeDialog()">Cancel</button>
       </div>
     </form>
   </dialog>
@@ -301,6 +301,16 @@
     const addBtn = document.getElementById('addEventBtn');
     const deleteBtn = document.getElementById('deleteBtn');
 
+    // Dialog fallback (for browsers that don't fully support <dialog>)
+    function openDialog(){
+      if (modal && typeof modal.showModal === 'function') { modal.showModal(); }
+      else { modal.setAttribute('open',''); modal.style.display='block'; document.body.classList.add('overflow-hidden'); }
+    }
+    function closeDialog(){
+      if (modal && typeof modal.close === 'function') { modal.close(); }
+      modal.removeAttribute('open'); modal.style.display='none'; document.body.classList.remove('overflow-hidden');
+    }
+
     function fillSelects(){
       // For modal form
       const roomSelect = form.elements['room'];
@@ -317,7 +327,7 @@
       fillSelects();
       document.getElementById('modalTitle').textContent = 'Add Event';
       deleteBtn.classList.add('hidden');
-      modal.showModal();
+      openDialog();
     }
 
     function openModalForEdit(e){
@@ -338,7 +348,7 @@
       form.elements['notes'].value = e.notes||'';
       document.getElementById('modalTitle').textContent = 'Edit Event';
       deleteBtn.classList.remove('hidden');
-      modal.showModal();
+      openDialog();
     }
 
     form.addEventListener('submit', (ev)=>{
@@ -361,13 +371,13 @@
       if(editingIndex===null){ events.push(row); }
       else { events[editingIndex] = row; }
       save();
-      modal.close();
+      closeDialog();
       renderAll();
     });
 
     deleteBtn.addEventListener('click', ()=>{
       if(editingIndex!==null){ events.splice(editingIndex,1); save(); renderAll(); }
-      modal.close();
+      closeDialog();
     });
 
     addBtn.addEventListener('click', openModalForAdd);
