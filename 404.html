@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Event Tracker — One Page</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <div class="max-w-7xl mx-auto p-4 md:p-8">
+    <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold">Event Tracker</h1>
+        <p class="text-sm text-slate-600">Simple one‑page tool to track events, rooms, revenue, lost revenue, and guests.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button id="addEventBtn" class="px-3 py-2 rounded-xl bg-slate-900 text-white">+ Add Event</button>
+        <button id="demoBtn" class="px-3 py-2 rounded-xl bg-slate-200">Load Demo Data</button>
+        <button id="exportBtn" class="px-3 py-2 rounded-xl bg-slate-200">Export JSON</button>
+        <label class="px-3 py-2 rounded-xl bg-slate-200 cursor-pointer">
+          Import JSON<input id="importInput" type="file" accept="application/json" class="hidden" />
+        </label>
+        <button id="clearBtn" class="px-3 py-2 rounded-xl bg-red-50 text-red-700">Clear All</button>
+      </div>
+    </header>
+
+    <!-- Filters -->
+    <section class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-3">
+      <select id="filterRoom" class="px-3 py-2 rounded-xl bg-white border border-slate-200">
+        <option value="">All Rooms</option>
+      </select>
+      <select id="filterStatus" class="px-3 py-2 rounded-xl bg-white border border-slate-200">
+        <option value="">All Statuses</option>
+      </select>
+      <select id="filterYear" class="px-3 py-2 rounded-xl bg-white border border-slate-200">
+        <option value="">All Years</option>
+      </select>
+      <input id="searchInput" placeholder="Search name/notes…" class="px-3 py-2 rounded-xl bg-white border border-slate-200" />
+    </section>
+
+    <!-- KPIs -->
+    <section class="mt-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3" id="kpiGrid"></section>
+
+    <!-- Table -->
+    <section class="mt-6 bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-50 text-slate-700">
+            <tr>
+              <th class="px-3 py-2 text-left">ID</th>
+              <th class="px-3 py-2 text-left">Name</th>
+              <th class="px-3 py-2 text-left">Date</th>
+              <th class="px-3 py-2 text-left">Start</th>
+              <th class="px-3 py-2 text-left">End</th>
+              <th class="px-3 py-2 text-right">Hours</th>
+              <th class="px-3 py-2 text-left">Room</th>
+              <th class="px-3 py-2 text-left">Status</th>
+              <th class="px-3 py-2 text-right">Guests</th>
+              <th class="px-3 py-2 text-right">Rate €</th>
+              <th class="px-3 py-2 text-right">Fee €</th>
+              <th class="px-3 py-2 text-right">Revenue €</th>
+              <th class="px-3 py-2 text-right">Lost €</th>
+              <th class="px-3 py-2 text-left">Canceled Reason</th>
+              <th class="px-3 py-2 text-left">Notes</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Breakdowns -->
+    <section class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-4">
+        <h3 class="font-semibold mb-3">Per Room</h3>
+        <div id="perRoom"></div>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-4">
+        <h3 class="font-semibold mb-3">Per Year</h3>
+        <div id="perYear"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal (DIV-based, no <dialog>) -->
+  <div id="modalBackdrop" class="fixed inset-0 bg-black/40 hidden"></div>
+  <div id="modal" class="fixed inset-0 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl ring-1 ring-slate-200 w-full max-w-2xl p-4 md:p-6">
+      <h2 class="text-xl font-semibold mb-4" id="modalTitle">Add Event</h2>
+      <form id="eventForm" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input name="id" placeholder="Event ID (optional)" class="px-3 py-2 rounded-xl bg-white border border-slate-200" />
+        <input name="name" placeholder="Event Name" required class="px-3 py-2 rounded-xl bg-white border border-slate-200" />
+        <input name="date" type="date" required class="px-3 py-2 rounded-xl bg-white border border-slate-200" />
+        <input name="start" type="time" required class="px-3 py-2 rounded-xl bg-white border border-slate-200" />
+        <input name="end" type="time" required class="px-3 py-2 rounded-xl bg-white border border-slate-200" />
+        <select name="room" required class="px-3 py-2 rounded-xl bg-white border border-slate-200"></select>
+        <select name="status" required class="px-3 py-2 rounded-xl bg-white border border-slate-200"></select>
+        <input name="guests" type="number" min="0" placeholder="Guests" class="px-3 py-2 rounded-xl bg-white border border-slate-200" />
+        <input name="rate" type="number" step="0.01" min="0" placeholder="Hourly Rate (€)" class="px-3 py-2 rounded-xl bg-white border border-slate-200" />
+        <input name="fee" type="number" step="0.01" min="0" placeholder="Fixed Fee (€)" class="px-3 py-2 rounded-xl bg-white border border-slate-200" />
+        <input name="cancelReason" placeholder="Canceled Reason" class="px-3 py-2 rounded-xl bg-white border border-slate-200" />
+        <input name="notes" placeholder="Notes" class="px-3 py-2 rounded-xl bg-white border border-slate-200" />
+        <div class="md:col-span-2 flex justify-end gap-2 mt-2">
+          <button type="button" id="deleteBtn" class="hidden px-3 py-2 rounded-xl bg-red-50 text-red-700">Delete</button>
+          <button type="submit" class="px-3 py-2 rounded-xl bg-slate-900 text-white">Save</button>
+          <button type="button" id="cancelBtn" class="px-3 py-2 rounded-xl bg-slate-200">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // ---- Config ----
+    const ROOMS = ["Cafe","Hall","Backyard","Seminar room","Conferences room","Pavilion"];
+    const STATUSES = ["Taken","Booked","Canceled","On hold","Free"];
+
+    // ---- State ----
+    const storeKey = 'events';
+    let events = [];
+    try { const raw = localStorage.getItem(storeKey); events = raw ? JSON.parse(raw) : []; } catch { events = []; }
+    let editingIndex = null;
+
+    // ---- El refs ----
+    const kpiGrid = document.getElementById('kpiGrid');
+    const tableBody = document.getElementById('tableBody');
+    const perRoomDiv = document.getElementById('perRoom');
+    const perYearDiv = document.getElementById('perYear');
+    const addBtn = document.getElementById('addEventBtn');
+    const demoBtn = document.getElementById('demoBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const importInput = document.getElementById('importInput');
+    const clearBtn = document.getElementById('clearBtn');
+    const filterRoom = document.getElementById('filterRoom');
+    const filterStatus = document.getElementById('filterStatus');
+    const filterYear = document.getElementById('filterYear');
+    const searchInput = document.getElementById('searchInput');
+
+    const modal = document.getElementById('modal');
+    const backdrop = document.getElementById('modalBackdrop');
+    const form = document.getElementById('eventForm');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const modalTitle = document.getElementById('modalTitle');
+
+    // ---- Utils ----
+    const euro = (n) => (Number(n||0)).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+    const save = () => localStorage.setItem(storeKey, JSON.stringify(events));
+    function openModal(){ modal.classList.remove('hidden'); modal.classList.add('flex'); backdrop.classList.remove('hidden'); }
+    function closeModal(){ modal.classList.add('hidden'); modal.classList.remove('flex'); backdrop.classList.add('hidden'); }
+
+    function parseTimeToDate(dateStr, timeStr){
+      try {
+        const [h,m] = (timeStr||'0:0').split(':').map(Number);
+        const d = new Date(dateStr + 'T00:00:00');
+        d.setHours(h||0, m||0, 0, 0); return d;
+      } catch { return new Date(); }
+    }
+
+    function compute(row){
+      const s = parseTimeToDate(row.date, row.start);
+      const e = parseTimeToDate(row.date, row.end);
+      const durationHrs = Math.max(0, (e - s)/3600000);
+      const fee = Number(row.fee||0); const rate = Number(row.rate||0);
+      const isFree = row.status === 'Free'; const isTaken = row.status === 'Taken'; const isCanceled = row.status === 'Canceled';
+      const revenue = isTaken ? (isFree ? 0 : (fee>0 ? fee : rate*durationHrs)) : 0;
+      const lost = isCanceled ? (fee>0 ? fee : rate*durationHrs) : 0;
+      const guestsHosted = isTaken ? Number(row.guests||0) : 0;
+      const year = row.date ? new Date(row.date).getFullYear() : '';
+      return {durationHrs, revenue, lost, guestsHosted, year};
+    }
+
+    // ---- Filters ----
+    function renderFilters(){
+      // rooms
+      [...filterRoom.querySelectorAll('option:not([value=""])')].forEach(o=>o.remove());
+      ROOMS.forEach(r=>filterRoom.add(new Option(r,r)));
+      // statuses
+      [...filterStatus.querySelectorAll('option:not([value=""])')].forEach(o=>o.remove());
+      STATUSES.forEach(s=>filterStatus.add(new Option(s,s)));
+      // years
+      [...filterYear.querySelectorAll('option:not([value=""])')].forEach(o=>o.remove());
+      [...new Set(events.map(e=>compute(e).year).filter(Boolean))].sort().forEach(y=>filterYear.add(new Option(y,y)));
+    }
+
+    function filtered(){
+      const r = filterRoom.value, s = filterStatus.value, y = filterYear.value, q = searchInput.value.toLowerCase();
+      return events.filter(e => (!r || e.room===r) && (!s || e.status===s) && (!y || String(compute(e).year)===y) && (!q || (e.name||'').toLowerCase().includes(q) || (e.notes||'').toLowerCase().includes(q)));
+    }
+
+    // ---- KPIs ----
+    function renderKPIs(){
+      const list = filtered();
+      const t = list.reduce((a,e)=>{ const c=compute(e); a.count++; a.taken += e.status==='Taken'?1:0; a.booked += e.status==='Booked'?1:0; a.canceled += e.status==='Canceled'?1:0; a.hold += e.status==='On hold'?1:0; a.free += e.status==='Free'?1:0; a.revenue+=c.revenue; a.lost+=c.lost; a.guests+=c.guestsHosted; return a; },{count:0,taken:0,booked:0,canceled:0,hold:0,free:0,revenue:0,lost:0,guests:0});
+      const items = [ ['Total Events', t.count], ['Taken', t.taken], ['Booked', t.booked], ['Canceled', t.canceled], ['On hold', t.hold], ['Free', t.free], ['Revenue €', '€ '+euro(t.revenue)], ['Lost €', '€ '+euro(t.lost)], ['Guests Hosted', t.guests] ];
+      kpiGrid.innerHTML = '';
+      items.forEach(([label,val])=>{ const card=document.createElement('div'); card.className='bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-4'; card.innerHTML=`<div class="text-xs text-slate-500">${label}</div><div class="text-xl font-semibold">${val}</div>`; kpiGrid.appendChild(card); });
+    }
+
+    // ---- Table ----
+    function renderTable(){
+      tableBody.innerHTML = '';
+      filtered().forEach(e=>{
+        const c = compute(e);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-3 py-2">${e.id||''}</td>
+          <td class="px-3 py-2">${e.name||''}</td>
+          <td class="px-3 py-2">${e.date||''}</td>
+          <td class="px-3 py-2">${e.start||''}</td>
+          <td class="px-3 py-2">${e.end||''}</td>
+          <td class="px-3 py-2 text-right">${c.durationHrs.toFixed(2)}</td>
+          <td class="px-3 py-2">${e.room||''}</td>
+          <td class="px-3 py-2">${e.status||''}</td>
+          <td class="px-3 py-2 text-right">${e.guests||0}</td>
+          <td class="px-3 py-2 text-right">${e.rate? '€ '+euro(e.rate): ''}</td>
+          <td class="px-3 py-2 text-right">${e.fee? '€ '+euro(e.fee): ''}</td>
+          <td class="px-3 py-2 text-right">€ ${euro(c.revenue)}</td>
+          <td class="px-3 py-2 text-right">€ ${euro(c.lost)}</td>
+          <td class="px-3 py-2">${e.cancelReason||''}</td>
+          <td class="px-3 py-2">${e.notes||''}</td>
+          <td class="px-3 py-2 text-right"><button class="text-slate-600 hover:text-slate-900 underline" data-edit>Edit</button></td>`;
+        tr.querySelector('[data-edit]').addEventListener('click', ()=>openEdit(e));
+        tableBody.appendChild(tr);
+      });
+    }
+
+    // ---- Breakdowns ----
+    function renderBreakdowns(){
+      // per room
+      const list = filtered();
+      const perRoom = {}; ROOMS.forEach(r=>perRoom[r]={events:0,revenue:0,lost:0,guests:0});
+      list.forEach(e=>{ const c=compute(e); if(!perRoom[e.room]) perRoom[e.room]={events:0,revenue:0,lost:0,guests:0}; perRoom[e.room].events++; perRoom[e.room].revenue+=c.revenue; perRoom[e.room].lost+=c.lost; perRoom[e.room].guests+=c.guestsHosted; });
+      perRoomDiv.innerHTML=''; Object.entries(perRoom).forEach(([room,v])=>{ const row=document.createElement('div'); row.className='grid grid-cols-4 gap-2 text-sm py-1'; row.innerHTML=`<div class="font-medium">${room}</div><div>${v.events||0}</div><div>€ ${euro(v.revenue)}</div><div>Lost € ${euro(v.lost)} · Guests ${v.guests}</div>`; perRoomDiv.appendChild(row); });
+      // per year
+      const perYear = {}; list.forEach(e=>{ const c=compute(e); const y=c.year||'—'; if(!perYear[y]) perYear[y]={events:0,taken:0,canceled:0,revenue:0,lost:0,guests:0}; perYear[y].events++; perYear[y].taken+=e.status==='Taken'?1:0; perYear[y].canceled+=e.status==='Canceled'?1:0; perYear[y].revenue+=c.revenue; perYear[y].lost+=c.lost; perYear[y].guests+=c.guestsHosted; });
+      perYearDiv.innerHTML=''; Object.entries(perYear).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))).forEach(([y,v])=>{ const row=document.createElement('div'); row.className='grid grid-cols-6 gap-2 text-sm py-1'; row.innerHTML=`<div class="font-medium">${y}</div><div>${v.events}</div><div>Taken ${v.taken}</div><div>Cancelled ${v.canceled}</div><div>€ ${euro(v.revenue)}</div><div>Lost € ${euro(v.lost)}</div>`; perYearDiv.appendChild(row); });
+    }
+
+    function renderAll(){ renderFilters(); renderKPIs(); renderTable(); renderBreakdowns(); }
+
+    // ---- Modal logic ----
+    function fillSelects(){
+      const roomSel = form.elements['room']; roomSel.innerHTML=''; ROOMS.forEach(r=>roomSel.add(new Option(r,r)));
+      const statusSel = form.elements['status']; statusSel.innerHTML=''; STATUSES.forEach(s=>statusSel.add(new Option(s,s)));
+    }
+
+    function openAdd(){ editingIndex=null; form.reset(); fillSelects(); modalTitle.textContent='Add Event'; deleteBtn.classList.add('hidden'); openModal(); }
+
+    function openEdit(e){ editingIndex = events.indexOf(e); fillSelects(); form.reset();
+      form.elements['id'].value = e.id||''; form.elements['name'].value=e.name||''; form.elements['date'].value=e.date||''; form.elements['start'].value=e.start||''; form.elements['end'].value=e.end||''; form.elements['room'].value=e.room||ROOMS[0]; form.elements['status'].value=e.status||STATUSES[0]; form.elements['guests'].value=e.guests||''; form.elements['rate'].value=e.rate||''; form.elements['fee'].value=e.fee||''; form.elements['cancelReason'].value=e.cancelReason||''; form.elements['notes'].value=e.notes||''; modalTitle.textContent='Edit Event'; deleteBtn.classList.remove('hidden'); openModal(); }
+
+    form.addEventListener('submit', (ev)=>{
+      ev.preventDefault(); const data = Object.fromEntries(new FormData(form).entries());
+      const row = { id:data.id?.trim(), name:data.name?.trim(), date:data.date, start:data.start, end:data.end, room:data.room, status:data.status, guests:Number(data.guests||0), rate:Number(data.rate||0), fee:Number(data.fee||0), cancelReason:data.cancelReason?.trim(), notes:data.notes?.trim() };
+      if(editingIndex===null) events.push(row); else events[editingIndex]=row; save(); closeModal(); renderAll();
+    });
+    deleteBtn.addEventListener('click', ()=>{ if(editingIndex!==null){ events.splice(editingIndex,1); save(); renderAll(); } closeModal(); });
+    cancelBtn.addEventListener('click', closeModal);
+
+    // ---- Buttons ----
+    addBtn.addEventListener('click', openAdd);
+    demoBtn.addEventListener('click', ()=>{ events = [
+      {id:'E-001',name:'Community Brunch',date:'2025-01-20',start:'10:00',end:'14:00',room:'Cafe',status:'Free',guests:45,rate:0,fee:0,notes:'social'},
+      {id:'E-002',name:'Startup Meetup',date:'2025-02-12',start:'18:00',end:'21:00',room:'Hall',status:'Taken',guests:80,rate:50,fee:0},
+      {id:'E-003',name:'Book Club',date:'2025-03-03',start:'19:00',end:'21:00',room:'Seminar room',status:'Taken',guests:22,rate:30,fee:0},
+      {id:'E-004',name:'Wedding Reception',date:'2025-04-08',start:'16:00',end:'23:00',room:'Backyard',status:'Canceled',guests:120,rate:80,fee:0,cancelReason:'Weather'},
+      {id:'E-005',name:'Workshop: Pottery',date:'2025-05-14',start:'13:00',end:'17:00',room:'Pavilion',status:'Booked',guests:16,rate:40,fee:0,notes:'deposit paid'},
+      {id:'E-006',name:'Tech Conference Day 1',date:'2025-06-01',start:'09:00',end:'18:00',room:'Conferences room',status:'Taken',guests:150,rate:70,fee:0,notes:'AV needed'},
+      {id:'E-007',name:'Community Yoga',date:'2025-06-10',start:'08:00',end:'10:00',room:'Hall',status:'Free',guests:30},
+      {id:'E-008',name:'Corporate Offsite',date:'2025-07-22',start:'10:00',end:'18:00',room:'Conferences room',status:'Canceled',guests:60,rate:90,fee:0,cancelReason:'Budget'},
+      {id:'E-009',name:'Open Mic Night',date:'2025-09-05',start:'18:00',end:'22:00',room:'Cafe',status:'Taken',guests:70,rate:35,fee:0,notes:'bar sales separate'},
+      {id:'E-010',name:'NGO Training',date:'2025-10-11',start:'09:00',end:'17:00',room:'Seminar room',status:'Taken',guests:28,rate:45,fee:0}
+    ]; save(); renderAll(); });
+
+    exportBtn.addEventListener('click', ()=>{ const blob=new Blob([JSON.stringify(events,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='events.json'; a.click(); URL.revokeObjectURL(url); });
+    importInput.addEventListener('change', async (e)=>{ const f=e.target.files[0]; if(!f) return; try{ const txt=await f.text(); const arr=JSON.parse(txt); if(Array.isArray(arr)){ events=arr; save(); renderAll(); } } catch{ alert('Invalid JSON'); } e.target.value=''; });
+    clearBtn.addEventListener('click', ()=>{ if(confirm('Delete ALL events?')){ events=[]; save(); renderAll(); } });
+
+    // ---- Init ----
+    renderAll();
+  });
+  </script>
+</body>
+</html>

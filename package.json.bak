@@ -1,7 +1,0 @@
-"scripts": {
-  "dev": "vite",
-  "tw": "tailwindcss -i ./src/index.css -o ./src/tw.css --minify",
-  "build": "npm run tw && tsc -b && vite build",
-  "lint": "eslint .",
-  "preview": "vite preview"
-}
